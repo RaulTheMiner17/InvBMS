@@ -1,44 +1,35 @@
-import React, { useState } from "react";
-import axios from "axios";
-import { Ticket, Search, AlertCircle } from "lucide-react";
+import React, { useState } from 'react';
+import axios from 'axios';
+import { Ticket, Search, AlertCircle } from 'lucide-react';
 
 function App() {
-  const [url, setUrl] = useState("");
-  const [offers, setOffers] = useState([]); // Ensure offers is always an array
+  const [url, setUrl] = useState('');
+  const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   const checkInventory = async () => {
     if (!url.trim()) {
-      setError("Please enter a valid URL.");
+      setError('Please enter a valid URL.');
       return;
     }
-
+    
     try {
       setLoading(true);
-      setError("");
+      setError('');
+      const response = await axios.get(`https://invbmsbackend-backend.up.railway.app/api/scrape?url=${encodeURIComponent(url)}`);
 
-      const response = await axios.get(
-        `/api/scrape?url=${encodeURIComponent(url)}`
-      );
-
-      if (response.data?.offers && Array.isArray(response.data.offers)) {
-        setOffers(response.data.offers);
-      } else {
-        setOffers([]); // Ensure it's always an array
-        setError("No offers found.");
-      }
+      setOffers(response.data.offers);
     } catch (err) {
-      setError("Failed to fetch inventory data. Please try again.");
+      setError('Failed to fetch inventory data. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const getAvailabilityColor = (availability) => {
-    return availability === "http://schema.org/InStock"
-      ? "text-green-600"
-      : "text-red-600";
+    
+    return availability === 'http://schema.org/InStock' ? 'text-green-600' : 'text-red-600';
   };
 
   return (
@@ -46,9 +37,7 @@ function App() {
       <div className="max-w-3xl w-full px-6 py-8 bg-white rounded-lg shadow-md">
         <div className="flex items-center justify-center mb-6">
           <Ticket className="w-8 h-8 text-purple-600 mr-2" />
-          <h1 className="text-2xl font-bold text-gray-900">
-            BookMyShow Inventory Checker
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900">BookMyShow Inventory Checker</h1>
         </div>
 
         <div className="mb-6">
@@ -65,7 +54,7 @@ function App() {
             className="w-full mt-4 px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <Search className="w-4 h-4" />
-            {loading ? "Checking..." : "Check Inventory"}
+            {loading ? 'Checking...' : 'Check Inventory'}
           </button>
         </div>
 
@@ -79,35 +68,16 @@ function App() {
         {offers.length > 0 && (
           <div className="grid grid-cols-1 gap-4">
             {offers.map((offer, index) => (
-              <div
-                key={index}
-                className="p-4 border rounded-lg shadow-sm bg-gray-100"
-              >
-                <h3 className="text-lg font-semibold mb-2">
-                  {offer.name || "Unknown Offer"}
-                </h3>
-                <p className="text-xl font-bold text-purple-600">
-                  ₹
-                  {offer.price
-                    ? parseFloat(offer.price).toLocaleString("en-IN")
-                    : "N/A"}
-                </p>
+              <div key={index} className="p-4 border rounded-lg shadow-sm">
+                <h3 className="text-lg font-semibold mb-2">{offer.name}</h3>
+                <p className="text-xl font-bold text-purple-600">₹{parseFloat(offer.price).toLocaleString('en-IN')}</p>
                 <p className={`font-medium ${getAvailabilityColor(offer.availability)}`}>
-                  {offer.availability === "http://schema.org/InStock"
-                    ? "In Stock"
-                    : "Sold Out"}
+                  {offer.availability === 'http://schema.org/InStock' ? 'In Stock' : 'Sold Out'}
                 </p>
-                {offer.availability === "http://schema.org/InStock" && (
-                  <p className="text-gray-600">
-                    Available Tickets: {offer.inventoryLevel || "N/A"}
-                  </p>
+                {offer.availability === 'http://schema.org/InStock' && (
+                  <p className="text-gray-600">Available Tickets: {offer.inventoryLevel}</p>
                 )}
-                <p className="text-sm text-gray-500">
-                  Valid From:{" "}
-                  {offer.validFrom
-                    ? new Date(offer.validFrom).toLocaleDateString()
-                    : "N/A"}
-                </p>
+                <p className="text-sm text-gray-500">Valid From: {new Date(offer.validFrom).toLocaleDateString()}</p>
               </div>
             ))}
           </div>
