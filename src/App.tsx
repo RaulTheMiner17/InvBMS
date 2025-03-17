@@ -17,7 +17,7 @@ function App() {
     try {
       setLoading(true);
       setError('');
-      const response = await axios.get(`http://localhost:8080/api/scrape?url=${encodeURIComponent(url)}`);
+      const response = await axios.get(`/api/scrape?url=${encodeURIComponent(url)}`);
       setOffers(response.data.offers);
     } catch (err) {
       setError('Failed to fetch inventory data. Please try again.');
