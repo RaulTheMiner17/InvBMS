@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Ticket, Search, AlertCircle } from 'lucide-react';
 
+// Use environment variable for backend URL (works on Vercel)
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3005";
+
 function App() {
   const [url, setUrl] = useState('');
   const [offers, setOffers] = useState([]);
@@ -17,28 +20,30 @@ function App() {
     try {
       setLoading(true);
       setError('');
-      const response = await axios.get(`http://localhost:3005/api/scrape?url=${encodeURIComponent(url)}`);
+      const response = await axios.get(`${BACKEND_URL}/api/scrape?url=${encodeURIComponent(url)}`);
       setOffers(response.data.offers);
     } catch (err) {
+      console.error("[ERROR] Failed to fetch inventory:", err);
       setError('Failed to fetch inventory data. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const getAvailabilityColor = (availability) => {
-    
+  const getAvailabilityColor = (availability: string) => {
     return availability === 'http://schema.org/InStock' ? 'text-green-600' : 'text-red-600';
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-3xl w-full px-6 py-8 bg-white rounded-lg shadow-md">
+        {/* Header */}
         <div className="flex items-center justify-center mb-6">
           <Ticket className="w-8 h-8 text-purple-600 mr-2" />
           <h1 className="text-2xl font-bold text-gray-900">BookMyShow Inventory Checker</h1>
         </div>
 
+        {/* Input & Button */}
         <div className="mb-6">
           <input
             type="text"
@@ -57,6 +62,7 @@ function App() {
           </button>
         </div>
 
+        {/* Error Message */}
         {error && (
           <div className="p-4 bg-red-50 text-red-700 rounded-md flex items-center gap-2">
             <AlertCircle className="w-5 h-5" />
@@ -64,10 +70,11 @@ function App() {
           </div>
         )}
 
+        {/* Display Offers */}
         {offers.length > 0 && (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {offers.map((offer, index) => (
-              <div key={index} className="p-4 border rounded-lg shadow-sm">
+              <div key={index} className="p-4 border rounded-lg shadow-sm bg-white">
                 <h3 className="text-lg font-semibold mb-2">{offer.name}</h3>
                 <p className="text-xl font-bold text-purple-600">₹{parseFloat(offer.price).toLocaleString('en-IN')}</p>
                 <p className={`font-medium ${getAvailabilityColor(offer.availability)}`}>
