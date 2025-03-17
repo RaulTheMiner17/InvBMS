@@ -3,18 +3,13 @@ import cors from "cors";
 import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
-import path from "path";
-import { fileURLToPath } from "url";  // ✅ Fix for __dirname
 
 const app = express();
-const PORT = process.env.PORT || 3005;
+const PORT = process.env.PORT || 8080;
 
 // Apply Puppeteer plugins
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 app.use(cors());
 app.use(express.json());
@@ -30,8 +25,14 @@ app.get("/api/scrape", async (req, res) => {
     console.log(`[INFO] Scraping URL: ${url}`);
 
     const browser = await puppeteer.launch({
-      headless: "new",
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--window-size=1280x1024",
+      ],
     });
 
     const page = await browser.newPage();
@@ -44,6 +45,7 @@ app.get("/api/scrape", async (req, res) => {
 
     console.log("[INFO] Extracting JSON-LD data...");
     
+    // Extract ALL JSON-LD scripts
     const jsonLdDataArray = await page.evaluate(() => {
       return Array.from(document.querySelectorAll('script[type="application/ld+json"]'))
         .map(script => script.textContent)
@@ -58,6 +60,8 @@ app.get("/api/scrape", async (req, res) => {
     });
 
     console.log(`[INFO] Found ${jsonLdDataArray.length} JSON-LD scripts.`);
+    console.log("[DEBUG] Full JSON-LD Data:", JSON.stringify(jsonLdDataArray, null, 2));
+
     await browser.close();
 
     if (!jsonLdDataArray.length) {
@@ -65,16 +69,21 @@ app.get("/api/scrape", async (req, res) => {
       return res.status(404).json({ error: "No JSON-LD data found" });
     }
 
+    // Flatten nested arrays inside JSON-LD data
     const flattenedJsonLd = jsonLdDataArray.flat();
-    const eventData = flattenedJsonLd.find(item => item["@type"] === "Event" && item.offers);
 
+    // Find the event data that contains offers
+    const eventData = flattenedJsonLd.find(item => item["@type"] === "Event" && item.offers);
+    
     if (!eventData || !eventData.offers) {
       console.warn("[WARN] No offers found in JSON-LD data.");
-      return res.status(404).json({ error: "No offers found" });
+      return res.status(404).json({ error: "No offers found in JSON-LD data" });
     }
 
     console.log(`[INFO] Extracted ${eventData.offers.length} offers.`);
-    
+    console.log("[DEBUG] Offers Data:", JSON.stringify(eventData.offers, null, 2));
+
+    // Extract only relevant offers
     const offers = eventData.offers.map(offer => ({
       name: offer.name,
       price: offer.price,
@@ -84,18 +93,15 @@ app.get("/api/scrape", async (req, res) => {
       validFrom: offer.validFrom,
     }));
 
+    console.log("[SUCCESS] Returning offer data.");
     return res.json({ offers });
   } catch (error) {
     console.error("[ERROR] Scraping error:", error.message);
-    return res.status(500).json({ error: "Failed to scrape", details: error.message });
+    return res.status(500).json({
+      error: "Failed to scrape the website",
+      details: error.message,
+    });
   }
-});
-
-// Serve frontend from "dist"
-app.use(express.static(path.join(__dirname, "../dist")));
-
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../dist", "index.html"));
 });
 
 app.listen(PORT, () => {

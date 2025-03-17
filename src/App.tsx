@@ -17,9 +17,8 @@ function App() {
     try {
       setLoading(true);
       setError('');
-      const response = await axios.get(`/api/scrape?url=${encodeURIComponent(url)}`);
-      console.log("API Response:", response.data); // ✅ Debugging
-      setOffers(response.data.offers || []); // ✅ Prevents undefined errors
+      const response = await axios.get(`http://localhost:8080/api/scrape?url=${encodeURIComponent(url)}`);
+      setOffers(response.data.offers);
     } catch (err) {
       setError('Failed to fetch inventory data. Please try again.');
     } finally {
@@ -28,6 +27,7 @@ function App() {
   };
 
   const getAvailabilityColor = (availability) => {
+    
     return availability === 'http://schema.org/InStock' ? 'text-green-600' : 'text-red-600';
   };
 
@@ -64,28 +64,22 @@ function App() {
           </div>
         )}
 
-        {offers.length > 0 ? (
+        {offers.length > 0 && (
           <div className="grid grid-cols-1 gap-4">
             {offers.map((offer, index) => (
               <div key={index} className="p-4 border rounded-lg shadow-sm">
                 <h3 className="text-lg font-semibold mb-2">{offer.name}</h3>
-                <p className="text-xl font-bold text-purple-600">
-                  ₹{parseFloat(offer.price).toLocaleString('en-IN')}
-                </p>
+                <p className="text-xl font-bold text-purple-600">₹{parseFloat(offer.price).toLocaleString('en-IN')}</p>
                 <p className={`font-medium ${getAvailabilityColor(offer.availability)}`}>
                   {offer.availability === 'http://schema.org/InStock' ? 'In Stock' : 'Sold Out'}
                 </p>
                 {offer.availability === 'http://schema.org/InStock' && (
                   <p className="text-gray-600">Available Tickets: {offer.inventoryLevel}</p>
                 )}
-                <p className="text-sm text-gray-500">
-                  Valid From: {new Date(offer.validFrom).toLocaleDateString()}
-                </p>
+                <p className="text-sm text-gray-500">Valid From: {new Date(offer.validFrom).toLocaleDateString()}</p>
               </div>
             ))}
           </div>
-        ) : (
-          <p className="text-gray-500">No offers available</p>
         )}
       </div>
     </div>
