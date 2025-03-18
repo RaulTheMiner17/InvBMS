@@ -17,7 +17,7 @@ function App() {
     try {
       setLoading(true);
       setError('');
-      const response = await axios.get(`https://inv-bms-backend.vercel.app/api/scrape?url=${encodeURIComponent(url)}`);
+      const response = await axios.get(`https://invbms-backend.onrender.com/api/scrape?url=${encodeURIComponent(url)}`);
       setOffers(response.data.offers);
     } catch (err) {
       setError('Failed to fetch inventory data. Please try again.');
